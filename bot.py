@@ -67,6 +67,11 @@ class DynamicTwilioSerializer(FrameSerializer):
             # Actualizar solo el stream_sid en el serializer existente
             self._serializer._stream_sid = stream_sid
         print(f"SERIALIZER stream_sid: {stream_sid}")
+    
+    async def serialize(self, frame: Frame) -> str | bytes | None:
+        if self._serializer:
+            return await self._serializer.serialize(frame)
+        return None
 
     async def deserialize(self, data: str | bytes) -> Frame | None:
         if isinstance(data, str):
