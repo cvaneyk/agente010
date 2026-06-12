@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
-from pipecat.pipeline.task import PipelineParams, PipelineTask
+from pipecat.pipeline.worker import PipelineWorker, PipelineParams
 from pipecat.processors.aggregators.llm_response_universal import (
     LLMUserAggregator,
     LLMAssistantAggregator,
@@ -97,10 +97,7 @@ async def run_bot(websocket, stream_sid: str):
         ]
     )
 
-    task = PipelineTask(
-        pipeline,
-        allow_interruptions=True,
-    )
+    task = PipelineWorker(pipeline)
 
     @transport.event_handler("on_client_connected")
     async def on_connected(transport, client):
