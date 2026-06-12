@@ -54,7 +54,6 @@ async def run_bot(websocket, stream_sid: str):
             vad_audio_passthrough=True,
             serializer=TwilioFrameSerializer(
                 stream_sid=stream_sid,
-                auto_hang_up=False,
             ),
         ),
     )
