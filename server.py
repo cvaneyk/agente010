@@ -9,7 +9,9 @@ from pipecat.pipeline.task import PipelineTask
 from bot import run_bot
 
 print(inspect.signature(PipelineTask.__init__))
-
+import pipecat.pipeline.worker as pw
+import inspect
+print(inspect.getsource(pw.PipelineWorker.__init__))
 app = FastAPI()
 
 @app.post("/incoming-call")
