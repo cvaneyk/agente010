@@ -57,7 +57,10 @@ class DynamicTwilioSerializer(FrameSerializer):
         self._stream_sid = stream_sid
         self._serializer = TwilioFrameSerializer(
             stream_sid=stream_sid,
-            params=TwilioFrameSerializer.InputParams(auto_hang_up=False),
+            params=TwilioFrameSerializer.InputParams(
+                auto_hang_up=False,
+                sample_rate=8000,
+            ),
         )
         print(f"SERIALIZER ACTUALIZADO con stream_sid: {stream_sid}")
 
@@ -70,16 +73,22 @@ class DynamicTwilioSerializer(FrameSerializer):
         if isinstance(data, str):
             try:
                 msg = json.loads(data)
-                print(f"DESERIALIZE EVENT: {msg.get('event')} | DATA: {data[:200]}")
-                if msg.get("event") == "start" and not self._stream_sid:
+                event = msg.get("event", "")
+                print(f"DESERIALIZE EVENT: {event}")
+                if event == "connected":
+                    return None  # ignorar
+                if event == "start" and not self._stream_sid:
                     stream_sid = msg["start"]["streamSid"]
                     self.set_stream_sid(stream_sid)
-                    return await self._serializer.deserialize(data)
+                    return None  # el start no genera audio
+                if event == "stop":
+                    return None
             except Exception as e:
                 print(f"DESERIALIZE ERROR: {e}")
+                return None
         if self._serializer:
             return await self._serializer.deserialize(data)
-        return None
+        return None  # si no hay serializer aún, ignorar
 
 
 async def run_bot(websocket, call_sid: str):
