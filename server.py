@@ -1,11 +1,10 @@
-import pipecat.transports as t
+import pipecat.transports.websocket as ws
 import pkgutil
 
-print("=== MÓDULOS EN transports ===")
-for x in pkgutil.iter_modules(t.__path__):
+print("=== MÓDULOS EN transports.websocket ===")
+for x in pkgutil.iter_modules(ws.__path__):
     print(x.name)
 
-import pipecat.serializers as s
-print("\n=== MÓDULOS EN serializers ===")
-for x in pkgutil.iter_modules(s.__path__):
-    print(x.name)
+import pipecat.serializers.twilio as tw
+print("\n=== CLASES EN serializers.twilio ===")
+print([x for x in dir(tw) if not x.startswith('_')])
