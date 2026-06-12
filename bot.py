@@ -20,7 +20,6 @@ from pipecat.transports.websocket.fastapi import (
 )
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.serializers.twilio import TwilioFrameSerializer
-from pipecat.serializers.base_serializer import FrameSerializer
 from pipecat.frames.frames import Frame
 
 load_dotenv()
@@ -47,31 +46,25 @@ INSTRUCCIONES:
 - Al despedirte confirma siempre los datos recogidos si los hay"""
 
 
-class DynamicTwilioSerializer(FrameSerializer):
+class DynamicTwilioSerializer:
 
     def __init__(self):
-        self._serializer = None
+        self._serializer = TwilioFrameSerializer(
+            stream_sid="placeholder",
+            params=TwilioFrameSerializer.InputParams(
+                auto_hang_up=False,
+                sample_rate=8000,
+            ),
+        )
         self._stream_sid = None
 
     def set_stream_sid(self, stream_sid: str):
         self._stream_sid = stream_sid
-        if self._serializer is None:
-            self._serializer = TwilioFrameSerializer(
-                stream_sid=stream_sid,
-                params=TwilioFrameSerializer.InputParams(
-                    auto_hang_up=False,
-                    sample_rate=8000,
-                ),
-            )
-        else:
-            # Actualizar solo el stream_sid en el serializer existente
-            self._serializer._stream_sid = stream_sid
-        print(f"SERIALIZER stream_sid: {stream_sid}")
-    
+        self._serializer._stream_sid = stream_sid
+        print(f"STREAM SID ACTUALIZADO: {stream_sid}")
+
     async def serialize(self, frame: Frame) -> str | bytes | None:
-        if self._serializer:
-            return await self._serializer.serialize(frame)
-        return None
+        return await self._serializer.serialize(frame)
 
     async def deserialize(self, data: str | bytes) -> Frame | None:
         if isinstance(data, str):
@@ -90,14 +83,11 @@ class DynamicTwilioSerializer(FrameSerializer):
             except Exception as e:
                 print(f"DESERIALIZE ERROR: {e}")
                 return None
-        if self._serializer:
-            return await self._serializer.deserialize(data)
-        return None
+        return await self._serializer.deserialize(data)
 
 
 async def run_bot(websocket, call_sid: str):
     dynamic_serializer = DynamicTwilioSerializer()
-    dynamic_serializer.set_stream_sid("placeholder")
 
     transport = FastAPIWebsocketTransport(
         websocket=websocket,
@@ -155,7 +145,7 @@ async def run_bot(websocket, call_sid: str):
 
     @transport.event_handler("on_client_connected")
     async def on_connected(transport, client):
-        await asyncio.sleep(0.5)  # pequeño delay para que Twilio establezca el stream
+        await asyncio.sleep(0.5)
         await task.queue_frames([LLMContextFrame(context)])
 
     runner = PipelineRunner()
