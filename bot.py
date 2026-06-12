@@ -1,5 +1,6 @@
 import os
 import json
+import asyncio
 from dotenv import load_dotenv
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
@@ -19,6 +20,8 @@ from pipecat.transports.websocket.fastapi import (
 )
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.serializers.twilio import TwilioFrameSerializer
+from pipecat.serializers.base_serializer import FrameSerializer
+from pipecat.frames.frames import Frame
 
 load_dotenv()
 
@@ -43,9 +46,46 @@ INSTRUCCIONES:
 - Si no sabes algo, di: "Déjeme que lo consulte con el equipo y le llamamos en breve"
 - Al despedirte confirma siempre los datos recogidos si los hay"""
 
-async def run_bot(websocket, stream_sid: str):
-    print(f"BOT INICIADO con stream_sid: {stream_sid}")
-    
+
+class DynamicTwilioSerializer(FrameSerializer):
+    """Wrapper que actualiza el stream_sid dinámicamente cuando llega el evento start."""
+
+    def __init__(self):
+        self._serializer = None
+        self._stream_sid = None
+
+    def set_stream_sid(self, stream_sid: str):
+        self._stream_sid = stream_sid
+        self._serializer = TwilioFrameSerializer(
+            stream_sid=stream_sid,
+            params=TwilioFrameSerializer.InputParams(auto_hang_up=False),
+        )
+        print(f"SERIALIZER ACTUALIZADO con stream_sid: {stream_sid}")
+
+    async def serialize(self, frame: Frame) -> str | bytes | None:
+        if self._serializer:
+            return await self._serializer.serialize(frame)
+        return None
+
+    async def deserialize(self, data: str | bytes) -> Frame | None:
+        # Interceptar el evento start para capturar el stream_sid
+        if isinstance(data, str):
+            try:
+                msg = json.loads(data)
+                if msg.get("event") == "start" and not self._stream_sid:
+                    stream_sid = msg["start"]["streamSid"]
+                    self.set_stream_sid(stream_sid)
+                    return None  # No procesar este frame como audio
+            except Exception:
+                pass
+        if self._serializer:
+            return await self._serializer.deserialize(data)
+        return None
+
+
+async def run_bot(websocket, call_sid: str):
+    dynamic_serializer = DynamicTwilioSerializer()
+
     transport = FastAPIWebsocketTransport(
         websocket=websocket,
         params=FastAPIWebsocketParams(
@@ -55,10 +95,7 @@ async def run_bot(websocket, stream_sid: str):
             vad_enabled=True,
             vad_analyzer=SileroVADAnalyzer(),
             vad_audio_passthrough=True,
-            serializer=TwilioFrameSerializer(
-                stream_sid=stream_sid,
-                params=TwilioFrameSerializer.InputParams(auto_hang_up=False),
-            ),
+            serializer=dynamic_serializer,
         ),
     )
 
@@ -102,11 +139,14 @@ async def run_bot(websocket, stream_sid: str):
 
     task = PipelineWorker(pipeline)
 
-    import asyncio
     @transport.event_handler("on_client_connected")
     async def on_connected(transport, client):
-        # Esperar 1 segundo para que Twilio establezca el stream de audio
-        await asyncio.sleep(1)
+        # Esperar a que el serializer tenga el stream_sid
+        for _ in range(20):
+            if dynamic_serializer._stream_sid:
+                break
+            await asyncio.sleep(0.1)
+        print(f"SALUDO con stream_sid: {dynamic_serializer._stream_sid}")
         await task.queue_frames([LLMContextFrame(context)])
 
     runner = PipelineRunner()
