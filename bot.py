@@ -68,16 +68,17 @@ class DynamicTwilioSerializer(FrameSerializer):
         return None
 
     async def deserialize(self, data: str | bytes) -> Frame | None:
-        # Interceptar el evento start para capturar el stream_sid
         if isinstance(data, str):
             try:
                 msg = json.loads(data)
+                print(f"DESERIALIZE EVENT: {msg.get('event')} | DATA: {data[:200]}")
                 if msg.get("event") == "start" and not self._stream_sid:
                     stream_sid = msg["start"]["streamSid"]
                     self.set_stream_sid(stream_sid)
-                    return None  # No procesar este frame como audio
-            except Exception:
-                pass
+                    # NO devolver None — dejar que el serializer original lo procese
+                    return await self._serializer.deserialize(data)
+            except Exception as e:
+                print(f"DESERIALIZE ERROR: {e}")
         if self._serializer:
             return await self._serializer.deserialize(data)
         return None
@@ -139,10 +140,9 @@ async def run_bot(websocket, call_sid: str):
 
     task = PipelineWorker(pipeline)
 
-    @transport.event_handler("on_client_connected")
+@transport.event_handler("on_client_connected")
     async def on_connected(transport, client):
-        # Esperar a que el serializer tenga el stream_sid
-        for _ in range(20):
+        for _ in range(50):  # esperar hasta 5 segundos
             if dynamic_serializer._stream_sid:
                 break
             await asyncio.sleep(0.1)
