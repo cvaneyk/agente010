@@ -1,8 +1,9 @@
 import os
+import json
 from dotenv import load_dotenv
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
-from pipecat.pipeline.worker import PipelineWorker, PipelineParams
+from pipecat.pipeline.worker import PipelineWorker
 from pipecat.processors.aggregators.llm_response_universal import (
     LLMUserAggregator,
     LLMAssistantAggregator,
@@ -42,21 +43,12 @@ INSTRUCCIONES:
 - Si no sabes algo, di: "Déjeme que lo consulte con el equipo y le llamamos en breve"
 - Al despedirte confirma siempre los datos recogidos si los hay"""
 
-async def run_bot(websocket, stream_sid: str, first_message: str = ""):
-    
-    # Reinyectamos el primer mensaje para que Pipecat lo procese
-    original_receive = websocket.receive_text
-    first_message_sent = False
-    
-    async def patched_receive():
-        nonlocal first_message_sent
-        if not first_message_sent:
-            first_message_sent = True
-            return {"type": "websocket.receive", "text": first_message}
-        return await original_receive()
-    
-    websocket.receive_text = patched_receive
-    
+async def run_bot(websocket):
+    # Leer el primer mensaje para obtener stream_sid
+    first_message = await websocket.receive_text()
+    data = json.loads(first_message)
+    stream_sid = data.get("streamSid", "")
+
     transport = FastAPIWebsocketTransport(
         websocket=websocket,
         params=FastAPIWebsocketParams(
