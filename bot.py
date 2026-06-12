@@ -21,6 +21,7 @@ from pipecat.transports.websocket.fastapi import (
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.serializers.twilio import TwilioFrameSerializer
 from pipecat.frames.frames import Frame
+from deepgram import LiveOptions
 
 load_dotenv()
 
@@ -125,8 +126,14 @@ async def run_bot(websocket, call_sid: str):
 
     stt = DeepgramSTTService(
         api_key=os.getenv("DEEPGRAM_API_KEY"),
-        language="es",
-        model="nova-2",
+        live_options=LiveOptions(
+            model="nova-2",
+            language="es",
+            encoding="linear16",
+            sample_rate=8000,
+            channels=1,
+            smart_format=True,
+        ),
     )
 
     tts = ElevenLabsTTSService(
