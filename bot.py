@@ -9,6 +9,7 @@ from pipecat.processors.aggregators.llm_response_universal import (
     LLMUserAggregator,
     LLMAssistantAggregator,
     LLMContextFrame,
+    LLMUserAggregatorParams,
 )
 from pipecat.processors.aggregators.llm_context import LLMContext
 from pipecat.services.anthropic.llm import AnthropicLLMService
@@ -111,7 +112,7 @@ async def run_bot(websocket, call_sid: str):
             audio_out_enabled=True,
             add_wav_header=False,
             vad_enabled=True,
-            vad_analyzer=SileroVADAnalyzer(),
+            vad_analyzer=SileroVADAnalyzer(sample_rate=8000),
             audio_in_sample_rate=8000,
             audio_out_sample_rate=8000,
             serializer=dynamic_serializer,
@@ -146,7 +147,10 @@ async def run_bot(websocket, call_sid: str):
         {"role": "assistant", "content": "Entendido, estoy lista para atender llamadas."},
     ])
 
-    user_aggregator = LLMUserAggregator(context)
+    user_aggregator = LLMUserAggregator(
+        context,
+        params=LLMUserAggregatorParams(user_turn_stop_timeout=1.2),
+    )
     assistant_aggregator = LLMAssistantAggregator(context)
 
     pipeline = Pipeline(
