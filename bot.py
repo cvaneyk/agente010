@@ -149,7 +149,7 @@ async def run_bot(websocket, call_sid: str):
         ]
     )
 
-    task = PipelineWorker(pipeline)
+    task = PipelineWorker(pipeline, enable_rtvi=False)
 
     @transport.event_handler("on_client_connected")
     async def on_connected(transport, client):
