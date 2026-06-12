@@ -58,6 +58,7 @@ class DynamicTwilioSerializer(FrameSerializer):
                 sample_rate=8000,
             ),
         )
+        self._serializer._sample_rate = 8000  # forzar sample rate
         self._stream_sid = None
 
     def set_stream_sid(self, stream_sid: str):
