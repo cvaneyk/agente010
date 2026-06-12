@@ -19,6 +19,12 @@ from pipecat.transports.websocket.fastapi import (
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.serializers.twilio import TwilioFrameSerializer
 
+# Obtener la clase InputParams
+serializer=TwilioFrameSerializer(
+    stream_sid=stream_sid,
+    params=TwilioFrameSerializer.InputParams(auto_hang_up=False),
+),
+
 load_dotenv()
 
 SYSTEM_PROMPT = """Eres Sara, la asistente virtual de Servicios López, una empresa de servicios profesionales.
