@@ -1,4 +1,5 @@
 import os
+import json
 import uvicorn
 from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import HTMLResponse
@@ -22,7 +23,13 @@ async def incoming_call(request: Request):
 @app.websocket("/ws/{call_sid}")
 async def websocket_endpoint(websocket: WebSocket, call_sid: str):
     await websocket.accept()
-    await run_bot(websocket)
+    
+    # El primer mensaje de Twilio contiene el stream_sid
+    first_message = await websocket.receive_text()
+    data = json.loads(first_message)
+    stream_sid = data.get("streamSid", "")
+    
+    await run_bot(websocket, stream_sid)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)
