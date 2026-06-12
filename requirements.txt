@@ -1,0 +1,5 @@
+pipecat-ai[silero,deepgram,elevenlabs,anthropic,twilio]
+fastapi
+uvicorn
+twilio
+python-dotenv
