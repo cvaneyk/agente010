@@ -1,3 +1,6 @@
+import pipecat.serializers.twilio as tw
+import inspect
+print(inspect.signature(tw.TwilioFrameSerializer.__init__))
 import os
 from dotenv import load_dotenv
 from pipecat.pipeline.pipeline import Pipeline
