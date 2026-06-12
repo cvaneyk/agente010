@@ -43,21 +43,9 @@ INSTRUCCIONES:
 - Si no sabes algo, di: "Déjeme que lo consulte con el equipo y le llamamos en breve"
 - Al despedirte confirma siempre los datos recogidos si los hay"""
 
-async def run_bot(websocket):
-    # Leer mensajes crudos hasta obtener el evento "start"
-    stream_sid = ""
-    while not stream_sid:
-        raw = await websocket._receive()  # bajo nivel, no consume el buffer de FastAPI
-        if raw["type"] == "websocket.receive":
-            text = raw.get("text", "")
-            if text:
-                data = json.loads(text)
-                event = data.get("event", "")
-                print(f"RAW EVENT: {event}")
-                if event == "start":
-                    stream_sid = data["start"]["streamSid"]
-                    print(f"STREAM SID: {stream_sid}")
-                    
+async def run_bot(websocket, stream_sid: str):
+    print(f"BOT INICIADO con stream_sid: {stream_sid}")
+    
     transport = FastAPIWebsocketTransport(
         websocket=websocket,
         params=FastAPIWebsocketParams(
