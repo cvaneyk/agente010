@@ -58,13 +58,20 @@ class DynamicTwilioSerializer(FrameSerializer):
                 sample_rate=8000,
             ),
         )
-        self._serializer._sample_rate = 8000  # forzar sample rate
+        self._serializer._sample_rate = 8000
         self._stream_sid = None
+        self._on_start = None
+
+    def set_on_start(self, callback):
+        self._on_start = callback
 
     def set_stream_sid(self, stream_sid: str):
         self._stream_sid = stream_sid
         self._serializer._stream_sid = stream_sid
         print(f"STREAM SID ACTUALIZADO: {stream_sid}")
+        if self._on_start:
+            asyncio.create_task(self._on_start())
+            self._on_start = None
 
     async def serialize(self, frame: Frame) -> str | bytes | None:
         result = await self._serializer.serialize(frame)
@@ -113,7 +120,7 @@ async def run_bot(websocket, call_sid: str):
 
     llm = AnthropicLLMService(
         api_key=os.getenv("ANTHROPIC_API_KEY"),
-        model="claude-sonnet-4-20250514",
+        settings=AnthropicLLMService.Settings(model="claude-sonnet-4-20250514"),
     )
 
     stt = DeepgramSTTService(
@@ -124,8 +131,11 @@ async def run_bot(websocket, call_sid: str):
 
     tts = ElevenLabsTTSService(
         api_key=os.getenv("ELEVENLABS_API_KEY"),
-        voice_id=os.getenv("ELEVENLABS_VOICE_ID"),
-        model="eleven_multilingual_v2",
+        settings=ElevenLabsTTSService.Settings(
+            voice=os.getenv("ELEVENLABS_VOICE_ID"),
+            model="eleven_multilingual_v2",
+            output_format="ulaw_8000",
+        ),
     )
 
     context = LLMContext()
@@ -151,10 +161,10 @@ async def run_bot(websocket, call_sid: str):
 
     task = PipelineWorker(pipeline, enable_rtvi=False)
 
-    @transport.event_handler("on_client_connected")
-    async def on_connected(transport, client):
-        await asyncio.sleep(0.5)
+    async def on_stream_started():
         await task.queue_frames([LLMContextFrame(context)])
+
+    dynamic_serializer.set_on_start(on_stream_started)
 
     runner = PipelineRunner()
     await runner.run(task)
