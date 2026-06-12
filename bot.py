@@ -3,16 +3,20 @@ from dotenv import load_dotenv
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
-from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext
-from pipecat.services.anthropic import AnthropicLLMService
-from pipecat.services.deepgram import DeepgramSTTService
-from pipecat.services.elevenlabs import ElevenLabsTTSService
+from pipecat.processors.aggregators.llm_response import (
+    LLMAssistantResponseAggregator,
+    LLMUserResponseAggregator,
+)
+from pipecat.services.anthropic.llm import AnthropicLLMService
+from pipecat.services.deepgram.stt import DeepgramSTTService
+from pipecat.services.elevenlabs.tts import ElevenLabsTTSService
 from pipecat.transports.network.fastapi_websocket import (
     FastAPIWebsocketTransport,
     FastAPIWebsocketParams,
 )
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.serializers.twilio import TwilioFrameSerializer
+from pipecat.frames.frames import LLMMessagesFrame
 
 load_dotenv()
 
@@ -69,18 +73,19 @@ async def run_bot(websocket):
     )
 
     messages = [{"role": "user", "content": SYSTEM_PROMPT}]
-    context = OpenAILLMContext(messages)
-    context_aggregator = llm.create_context_aggregator(context)
+
+    user_aggregator = LLMUserResponseAggregator(messages)
+    assistant_aggregator = LLMAssistantResponseAggregator(messages)
 
     pipeline = Pipeline(
         [
             transport.input(),
             stt,
-            context_aggregator.user(),
+            user_aggregator,
             llm,
             tts,
             transport.output(),
-            context_aggregator.assistant(),
+            assistant_aggregator,
         ]
     )
 
@@ -91,7 +96,7 @@ async def run_bot(websocket):
 
     @transport.event_handler("on_client_connected")
     async def on_connected(transport, client):
-        await task.queue_frames([context_aggregator.user().get_context_frame()])
+        await task.queue_frames([LLMMessagesFrame(messages)])
 
     runner = PipelineRunner()
     await runner.run(task)
