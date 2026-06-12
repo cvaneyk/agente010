@@ -67,7 +67,12 @@ class DynamicTwilioSerializer(FrameSerializer):
         print(f"STREAM SID ACTUALIZADO: {stream_sid}")
 
     async def serialize(self, frame: Frame) -> str | bytes | None:
-        return await self._serializer.serialize(frame)
+        result = await self._serializer.serialize(frame)
+        if result:
+            print(f"SERIALIZE OK: {type(frame).__name__} -> {len(result)} bytes")
+        else:
+            print(f"SERIALIZE NULL: {type(frame).__name__}")
+        return result
 
     async def deserialize(self, data: str | bytes) -> Frame | None:
         if isinstance(data, str):
