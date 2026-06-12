@@ -49,9 +49,11 @@ async def run_bot(websocket):
     while not stream_sid:
         message = await websocket.receive_text()
         data = json.loads(message)
+        print(f"TWILIO EVENT: {data.get('event')} | streamSid: {data.get('streamSid', 'N/A')}")
         if data.get("event") == "start":
             stream_sid = data["start"]["streamSid"]
-
+    
+    print(f"STREAM SID CAPTURADO: {stream_sid}")
     transport = FastAPIWebsocketTransport(
         websocket=websocket,
         params=FastAPIWebsocketParams(
