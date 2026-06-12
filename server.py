@@ -1,13 +1,14 @@
-import pipecat.serializers.twilio as tw
-import inspect
-print(inspect.signature(tw.TwilioFrameSerializer.__init__))
 import os
 import json
+import inspect
 import uvicorn
 from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import HTMLResponse
 from twilio.twiml.voice_response import VoiceResponse, Connect
+from pipecat.pipeline.task import PipelineTask
 from bot import run_bot
+
+print(inspect.signature(PipelineTask.__init__))
 
 app = FastAPI()
 
@@ -27,7 +28,6 @@ async def incoming_call(request: Request):
 async def websocket_endpoint(websocket: WebSocket, call_sid: str):
     await websocket.accept()
     
-    # El primer mensaje de Twilio contiene el stream_sid
     first_message = await websocket.receive_text()
     data = json.loads(first_message)
     stream_sid = data.get("streamSid", "")
