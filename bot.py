@@ -55,19 +55,18 @@ class DynamicTwilioSerializer(FrameSerializer):
 
     def set_stream_sid(self, stream_sid: str):
         self._stream_sid = stream_sid
-        self._serializer = TwilioFrameSerializer(
-            stream_sid=stream_sid,
-            params=TwilioFrameSerializer.InputParams(
-                auto_hang_up=False,
-                sample_rate=8000,
-            ),
-        )
-        print(f"SERIALIZER ACTUALIZADO con stream_sid: {stream_sid}")
-
-    async def serialize(self, frame: Frame) -> str | bytes | None:
-        if self._serializer:
-            return await self._serializer.serialize(frame)
-        return None
+        if self._serializer is None:
+            self._serializer = TwilioFrameSerializer(
+                stream_sid=stream_sid,
+                params=TwilioFrameSerializer.InputParams(
+                    auto_hang_up=False,
+                    sample_rate=8000,
+                ),
+            )
+        else:
+            # Actualizar solo el stream_sid en el serializer existente
+            self._serializer._stream_sid = stream_sid
+        print(f"SERIALIZER stream_sid: {stream_sid}")
 
     async def deserialize(self, data: str | bytes) -> Frame | None:
         if isinstance(data, str):
@@ -76,11 +75,11 @@ class DynamicTwilioSerializer(FrameSerializer):
                 event = msg.get("event", "")
                 print(f"DESERIALIZE EVENT: {event}")
                 if event == "connected":
-                    return None  # ignorar
-                if event == "start" and not self._stream_sid:
+                    return None
+                if event == "start":
                     stream_sid = msg["start"]["streamSid"]
                     self.set_stream_sid(stream_sid)
-                    return None  # el start no genera audio
+                    return None
                 if event == "stop":
                     return None
             except Exception as e:
@@ -88,11 +87,12 @@ class DynamicTwilioSerializer(FrameSerializer):
                 return None
         if self._serializer:
             return await self._serializer.deserialize(data)
-        return None  # si no hay serializer aún, ignorar
+        return None
 
 
 async def run_bot(websocket, call_sid: str):
     dynamic_serializer = DynamicTwilioSerializer()
+    dynamic_serializer.set_stream_sid("placeholder")
 
     transport = FastAPIWebsocketTransport(
         websocket=websocket,
@@ -150,11 +150,7 @@ async def run_bot(websocket, call_sid: str):
 
     @transport.event_handler("on_client_connected")
     async def on_connected(transport, client):
-        for _ in range(50):
-            if dynamic_serializer._stream_sid:
-                break
-            await asyncio.sleep(0.1)
-        print(f"SALUDO con stream_sid: {dynamic_serializer._stream_sid}")
+        await asyncio.sleep(0.5)  # pequeño delay para que Twilio establezca el stream
         await task.queue_frames([LLMContextFrame(context)])
 
     runner = PipelineRunner()
