@@ -42,7 +42,7 @@ INSTRUCCIONES:
 - Si no sabes algo, di: "Déjeme que lo consulte con el equipo y le llamamos en breve"
 - Al despedirte confirma siempre los datos recogidos si los hay"""
 
-async def run_bot(websocket):
+async def run_bot(websocket, stream_sid: str):
     transport = FastAPIWebsocketTransport(
         websocket=websocket,
         params=FastAPIWebsocketParams(
@@ -52,7 +52,7 @@ async def run_bot(websocket):
             vad_enabled=True,
             vad_analyzer=SileroVADAnalyzer(),
             vad_audio_passthrough=True,
-            serializer=TwilioFrameSerializer(),
+            serializer=TwilioFrameSerializer(stream_sid),
         ),
     )
 
