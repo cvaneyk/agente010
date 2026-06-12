@@ -82,8 +82,8 @@ async def run_bot(websocket, stream_sid: str):
         {"role": "assistant", "content": "Entendido, estoy lista para atender llamadas."},
     ])
 
-    user_aggregator = LLMUserAggregator()
-    assistant_aggregator = LLMAssistantAggregator()
+    user_aggregator = LLMUserAggregator(context)
+    assistant_aggregator = LLMAssistantAggregator(context)
 
     pipeline = Pipeline(
         [
