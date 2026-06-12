@@ -1,17 +1,11 @@
 import os
 import json
-import inspect
 import uvicorn
 from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import HTMLResponse
 from twilio.twiml.voice_response import VoiceResponse, Connect
-from pipecat.pipeline.task import PipelineTask
 from bot import run_bot
 
-print(inspect.signature(PipelineTask.__init__))
-import pipecat.pipeline.worker as pw
-import inspect
-print(inspect.getsource(pw.PipelineWorker.__init__))
 app = FastAPI()
 
 @app.post("/incoming-call")
