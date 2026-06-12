@@ -1,3 +1,6 @@
+import pipecat.serializers.twilio as tw
+import inspect
+print(inspect.signature(tw.TwilioFrameSerializer.__init__))
 import os
 import json
 import uvicorn
