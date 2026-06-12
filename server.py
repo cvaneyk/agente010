@@ -1,15 +1,28 @@
-import pipecat.transports.websocket.fastapi as wf
-print("=== CLASES EN transports.websocket.fastapi ===")
-print([x for x in dir(wf) if not x.startswith('_')])
+import os
+import uvicorn
+from fastapi import FastAPI, Request, WebSocket
+from fastapi.responses import HTMLResponse
+from twilio.twiml.voice_response import VoiceResponse, Connect
+from bot import run_bot
 
-import pipecat.services.anthropic.llm as ant
-print("\n=== CLASES EN services.anthropic.llm ===")
-print([x for x in dir(ant) if not x.startswith('_')])
+app = FastAPI()
 
-import pipecat.services.deepgram.stt as dg
-print("\n=== CLASES EN services.deepgram.stt ===")
-print([x for x in dir(dg) if not x.startswith('_')])
+@app.post("/incoming-call")
+async def incoming_call(request: Request):
+    form_data = await request.form()
+    call_sid = form_data.get("CallSid")
+    
+    response = VoiceResponse()
+    connect = Connect()
+    connect.stream(url=f"wss://{request.headers['host']}/ws/{call_sid}")
+    response.append(connect)
+    
+    return HTMLResponse(content=str(response), media_type="application/xml")
 
-import pipecat.services.elevenlabs.tts as el
-print("\n=== CLASES EN services.elevenlabs.tts ===")
-print([x for x in dir(el) if not x.startswith('_')])
+@app.websocket("/ws/{call_sid}")
+async def websocket_endpoint(websocket: WebSocket, call_sid: str):
+    await websocket.accept()
+    await run_bot(websocket)
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8080)
