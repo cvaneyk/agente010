@@ -46,7 +46,9 @@ INSTRUCCIONES:
 - Al despedirte confirma siempre los datos recogidos si los hay"""
 
 
-class DynamicTwilioSerializer:
+from pipecat.serializers.base_serializer import FrameSerializer
+
+class DynamicTwilioSerializer(FrameSerializer):
 
     def __init__(self):
         self._serializer = TwilioFrameSerializer(
