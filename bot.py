@@ -134,7 +134,6 @@ async def run_bot(websocket, call_sid: str):
         settings=ElevenLabsTTSService.Settings(
             voice=os.getenv("ELEVENLABS_VOICE_ID"),
             model="eleven_multilingual_v2",
-            output_format="ulaw_8000",
         ),
     )
 
