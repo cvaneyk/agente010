@@ -1,10 +1,15 @@
-import pipecat.transports.websocket as ws
-import pkgutil
+import pipecat.transports.websocket.fastapi as wf
+print("=== CLASES EN transports.websocket.fastapi ===")
+print([x for x in dir(wf) if not x.startswith('_')])
 
-print("=== MÓDULOS EN transports.websocket ===")
-for x in pkgutil.iter_modules(ws.__path__):
-    print(x.name)
+import pipecat.services.anthropic.llm as ant
+print("\n=== CLASES EN services.anthropic.llm ===")
+print([x for x in dir(ant) if not x.startswith('_')])
 
-import pipecat.serializers.twilio as tw
-print("\n=== CLASES EN serializers.twilio ===")
-print([x for x in dir(tw) if not x.startswith('_')])
+import pipecat.services.deepgram.stt as dg
+print("\n=== CLASES EN services.deepgram.stt ===")
+print([x for x in dir(dg) if not x.startswith('_')])
+
+import pipecat.services.elevenlabs.tts as el
+print("\n=== CLASES EN services.elevenlabs.tts ===")
+print([x for x in dir(el) if not x.startswith('_')])
