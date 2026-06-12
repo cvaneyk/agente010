@@ -94,6 +94,8 @@ async def run_bot(websocket, call_sid: str):
             vad_enabled=True,
             vad_analyzer=SileroVADAnalyzer(),
             vad_audio_passthrough=True,
+            audio_in_sample_rate=8000,
+            audio_out_sample_rate=8000,
             serializer=dynamic_serializer,
         ),
     )
