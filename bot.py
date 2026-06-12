@@ -44,10 +44,13 @@ INSTRUCCIONES:
 - Al despedirte confirma siempre los datos recogidos si los hay"""
 
 async def run_bot(websocket):
-    # Leer el primer mensaje para obtener stream_sid
-    first_message = await websocket.receive_text()
-    data = json.loads(first_message)
-    stream_sid = data.get("streamSid", "")
+    # Twilio envía primero "connected", luego "start" con el stream_sid
+    stream_sid = ""
+    while not stream_sid:
+        message = await websocket.receive_text()
+        data = json.loads(message)
+        if data.get("event") == "start":
+            stream_sid = data["start"]["streamSid"]
 
     transport = FastAPIWebsocketTransport(
         websocket=websocket,
