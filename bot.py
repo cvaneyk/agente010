@@ -102,8 +102,11 @@ async def run_bot(websocket, stream_sid: str):
 
     task = PipelineWorker(pipeline)
 
+    import asyncio
     @transport.event_handler("on_client_connected")
     async def on_connected(transport, client):
+        # Esperar 1 segundo para que Twilio establezca el stream de audio
+        await asyncio.sleep(1)
         await task.queue_frames([LLMContextFrame(context)])
 
     runner = PipelineRunner()
