@@ -44,16 +44,20 @@ INSTRUCCIONES:
 - Al despedirte confirma siempre los datos recogidos si los hay"""
 
 async def run_bot(websocket):
-    # Twilio envía primero "connected", luego "start" con el stream_sid
+    # Leer mensajes crudos hasta obtener el evento "start"
     stream_sid = ""
     while not stream_sid:
-        message = await websocket.receive_text()
-        data = json.loads(message)
-        print(f"TWILIO EVENT: {data.get('event')} | streamSid: {data.get('streamSid', 'N/A')}")
-        if data.get("event") == "start":
-            stream_sid = data["start"]["streamSid"]
-    
-    print(f"STREAM SID CAPTURADO: {stream_sid}")
+        raw = await websocket._receive()  # bajo nivel, no consume el buffer de FastAPI
+        if raw["type"] == "websocket.receive":
+            text = raw.get("text", "")
+            if text:
+                data = json.loads(text)
+                event = data.get("event", "")
+                print(f"RAW EVENT: {event}")
+                if event == "start":
+                    stream_sid = data["start"]["streamSid"]
+                    print(f"STREAM SID: {stream_sid}")
+                    
     transport = FastAPIWebsocketTransport(
         websocket=websocket,
         params=FastAPIWebsocketParams(
