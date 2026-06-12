@@ -48,7 +48,6 @@ INSTRUCCIONES:
 
 
 class DynamicTwilioSerializer(FrameSerializer):
-    """Wrapper que actualiza el stream_sid dinámicamente cuando llega el evento start."""
 
     def __init__(self):
         self._serializer = None
@@ -75,7 +74,6 @@ class DynamicTwilioSerializer(FrameSerializer):
                 if msg.get("event") == "start" and not self._stream_sid:
                     stream_sid = msg["start"]["streamSid"]
                     self.set_stream_sid(stream_sid)
-                    # NO devolver None — dejar que el serializer original lo procese
                     return await self._serializer.deserialize(data)
             except Exception as e:
                 print(f"DESERIALIZE ERROR: {e}")
@@ -140,9 +138,9 @@ async def run_bot(websocket, call_sid: str):
 
     task = PipelineWorker(pipeline)
 
-@transport.event_handler("on_client_connected")
+    @transport.event_handler("on_client_connected")
     async def on_connected(transport, client):
-        for _ in range(50):  # esperar hasta 5 segundos
+        for _ in range(50):
             if dynamic_serializer._stream_sid:
                 break
             await asyncio.sleep(0.1)
